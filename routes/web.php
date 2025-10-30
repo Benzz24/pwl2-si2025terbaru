@@ -37,6 +37,9 @@ Route::middleware(['auth'])->group(function () {
     // Transaksi
     Route::resource('transaksi', TransaksiController::class);
 
+    // === ROUTE KIRIM EMAIL TRANSAKSI ===
+    Route::get('/send-email/{to}/{id}', [TransaksiController::class, 'sendEmail'])->name('send.email');
+
     // Category
     Route::resource('category', CategoryController::class);
 });

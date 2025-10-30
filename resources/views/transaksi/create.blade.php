@@ -24,6 +24,7 @@
         <div class="col-lg-7 mb-4">
             <div class="content-card h-100">
                 <h5 class="fw-bold">Pilih Menu</h5>
+
                 {{-- Kategori Filter --}}
                 <div class="nav nav-pills mb-3" id="category-filter">
                     <button class="nav-link active" type="button" data-category-id="all">Semua Menu</button>
@@ -31,10 +32,13 @@
                         <button class="nav-link" type="button" data-category-id="{{ $category->id }}">{{ $category->name }}</button>
                     @endforeach
                 </div>
+
                 {{-- Grid Produk --}}
                 <div class="product-grid">
                     @forelse($products as $product)
-                        <div class="card product-card" data-category-id="{{ $product->product_category_id }}" onclick="addToBill({{ $product->id }}, '{{ $product->title }}', {{ $product->price }}, '{{ asset('storage/images/' . $product->image) }}')">
+                        <div class="card product-card"
+                            data-category-id="{{ $product->product_category_id }}"
+                            onclick="addToBill({{ $product->id }}, '{{ $product->title }}', {{ $product->price }}, '{{ asset('storage/images/' . $product->image) }}')">
                             <img src="{{ asset('storage/images/' . $product->image) }}" class="card-img-top">
                             <div class="card-body p-2">
                                 <h6 class="card-title small fw-bold mb-1">{{ $product->title }}</h6>
@@ -51,26 +55,37 @@
         {{-- Kolom Kanan: Detail Tagihan --}}
         <div class="col-lg-5 mb-4">
             <div class="content-card h-100 d-flex flex-column">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
-                        <div>
-                            <h5 class="fw-bold mb-1">Detail tagihan</h5>
-                        </div>
-                        <div>
-                            <a href="{{ route('transaksi.index') }}" class="btn btn-app-secondary">
-                                <i class="fas fa-arrow-left me-1"></i> Kembali
-                            </a>
-                        </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-1">Detail Tagihan</h5>
                     </div>
+                    <div>
+                        <a href="{{ route('transaksi.index') }}" class="btn btn-app-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Kembali
+                        </a>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label for="nama_kasir" class="form-label fw-semibold small">NAMA KASIR</label>
                     <input type="text" class="form-control" id="nama_kasir" name="nama_kasir" value="Admin Mofu" required>
                 </div>
+
                 <div class="mb-3">
                     <label for="nama_pembeli" class="form-label fw-semibold small">NAMA PEMBELI (OPSIONAL)</label>
                     <input type="text" class="form-control" id="nama_pembeli" name="nama_pembeli">
                 </div>
+
+                {{-- 🔹 Tambahan Kolom Email Pembeli --}}
+                <div class="mb-3">
+                    <label for="email_pembeli" class="form-label fw-semibold small">EMAIL PEMBELI (OPSIONAL)</label>
+                    <input type="email" class="form-control" id="email_pembeli" name="email_pembeli" placeholder="contoh: pembeli@email.com">
+                </div>
+                {{-- 🔹 Selesai Tambahan --}}
+
                 <hr>
-                
+
                 <div id="bill-items" class="flex-grow-1" style="overflow-y: auto; max-height: 30vh;">
                     <p class="text-center text-muted mt-5">Belum ada item dipilih.</p>
                 </div>
@@ -80,6 +95,7 @@
                         <span>Total Harga:</span>
                         <span id="grand-total">Rp 0</span>
                     </div>
+
                     <div class="mb-2">
                         <label for="metode_pembayaran" class="form-label fw-semibold small">METODE PEMBAYARAN</label>
                         <select class="form-select" id="metode_pembayaran" name="metode_pembayaran" required>
@@ -88,6 +104,7 @@
                             <option value="Card">Kartu (Card)</option>
                         </select>
                     </div>
+
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary fw-bold">PROSES TRANSAKSI</button>
                     </div>
@@ -99,7 +116,7 @@
 @endsection
 
 @section('scripts')
-    {{-- Script Anda tidak diubah dan tetap sama --}}
+{{-- Script kamu tetap sama --}}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         let bill = {};
@@ -133,9 +150,24 @@
                 productIds.forEach((id, index) => {
                     const item = bill[id];
                     grandTotal += item.price * item.jumlah;
-                    const itemHtml = `<div class="d-flex align-items-center py-2 bill-item"><img src="${item.image}" width="50" height="50" class="rounded me-3" style="object-fit: cover;"><div class="flex-grow-1"><p class="fw-bold small mb-0">${item.title}</p><small class="text-muted">Rp ${item.price.toLocaleString('id-ID')}</small></div><div class="d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${id}, -1)">-</button><span class="mx-2 fw-bold">${item.jumlah}</span><button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${id}, 1)">+</button></div></div>`;
+                    const itemHtml = `
+                        <div class="d-flex align-items-center py-2 bill-item">
+                            <img src="${item.image}" width="50" height="50" class="rounded me-3" style="object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <p class="fw-bold small mb-0">${item.title}</p>
+                                <small class="text-muted">Rp ${item.price.toLocaleString('id-ID')}</small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${id}, -1)">-</button>
+                                <span class="mx-2 fw-bold">${item.jumlah}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${id}, 1)">+</button>
+                            </div>
+                        </div>`;
                     billItemsContainer.innerHTML += itemHtml;
-                    formInputs += `<input type="hidden" name="products[${index}][id]" value="${item.id}"><input type="hidden" name="products[${index}][jumlah]" value="${item.jumlah}">`;
+                    formInputs += `
+                        <input type="hidden" name="products[${index}][id]" value="${item.id}">
+                        <input type="hidden" name="products[${index}][jumlah]" value="${item.jumlah}">
+                    `;
                 });
                 document.querySelectorAll('input[name*="products"]').forEach(el => el.remove());
                 billItemsContainer.insertAdjacentHTML('afterend', formInputs);

@@ -68,6 +68,10 @@
                     <label for="nama_pembeli" class="form-label fw-semibold small">NAMA PEMBELI (OPSIONAL)</label>
                     <input type="text" class="form-control" id="nama_pembeli" name="nama_pembeli" value="{{ old('nama_pembeli', $transaksi->nama_pembeli) }}">
                 </div>
+                <div class="mb-3">
+                    <label for="email_pembeli" class="form-label fw-semibold small">EMAIL PEMBELI</label>
+                    <input type="email" class="form-control" id="email_pembeli" name="email_pembeli" value="{{ old('email_pembeli', $transaksi->email_pembeli) }}" placeholder="contoh: pembeli@email.com">
+                </div>
                 <hr>
                 
                 <div id="bill-items" class="flex-grow-1" style="overflow-y: auto; max-height: 30vh;">

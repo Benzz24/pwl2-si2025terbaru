@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Mail;
 
 class TransaksiController extends Controller
 {
@@ -17,13 +18,15 @@ class TransaksiController extends Controller
         $pendapatanHariIni = TransaksiPenjualan::whereDate('created_at', today())->sum('total_harga');
         $jumlahTransaksiHariIni = TransaksiPenjualan::whereDate('created_at', today())->count();
         $transaksis = TransaksiPenjualan::with('details.product')->latest()->paginate(8);
+
         return view('transaksi.index', compact('transaksis', 'pendapatanHariIni', 'jumlahTransaksiHariIni'));
     }
 
     public function create(): View
     {
         $products = Product::orderBy('title')->get();
-        $categories = Category_product::all(); // Mengambil data kategori untuk filter
+        $categories = Category_product::all();
+
         return view('transaksi.create', compact('products', 'categories'));
     }
 
@@ -31,6 +34,8 @@ class TransaksiController extends Controller
     {
         $request->validate([
             'nama_kasir'        => 'required|string|max:50',
+            'nama_pembeli'      => 'nullable|string|max:100',
+            'email_pembeli'     => 'required|email',
             'metode_pembayaran' => 'required|in:Cash,QRIS,Card',
             'products'          => 'required|array|min:1',
             'products.*.id'     => 'required|integer|exists:products,id',
@@ -41,10 +46,13 @@ class TransaksiController extends Controller
             $transaksi = new TransaksiPenjualan();
             $transaksi->nama_kasir = $request->nama_kasir;
             $transaksi->nama_pembeli = $request->nama_pembeli;
+            $transaksi->email_pembeli = $request->email_pembeli;
             $transaksi->metode_pembayaran = $request->metode_pembayaran;
             $transaksi->total_harga = 0;
             $transaksi->save();
+
             $grandTotal = 0;
+
             foreach ($request->products as $productData) {
                 $product = Product::find($productData['id']);
                 $subtotal = $product->price * $productData['jumlah'];
@@ -55,8 +63,12 @@ class TransaksiController extends Controller
                 ]);
                 $grandTotal += $subtotal;
             }
+
             $transaksi->total_harga = $grandTotal;
             $transaksi->save();
+
+            $to = $request->email_pembeli; // pastikan dikirim dari form
+            $this->sendEmail($to, $transaksi->id);
         });
 
         return redirect()->route('transaksi.index')->with('success', 'Transaksi berhasil dibuat!');
@@ -71,8 +83,9 @@ class TransaksiController extends Controller
     public function edit(string $id): View
     {
         $transaksi = TransaksiPenjualan::with('details.product')->findOrFail($id);
-        $products = Product::orderBy('title')->get(); // Semua produk untuk ditambahkan
-        $categories = Category_product::all(); // Semua kategori untuk filter
+        $products = Product::orderBy('title')->get();
+        $categories = Category_product::all();
+
         return view('transaksi.edit', compact('transaksi', 'products', 'categories'));
     }
 
@@ -80,23 +93,25 @@ class TransaksiController extends Controller
     {
         $request->validate([
             'nama_kasir' => 'required|string|max:50',
+            'nama_pembeli'      => 'nullable|string|max:100',
+            'email_pembeli'     => 'required|email',
             'metode_pembayaran' => 'required|in:Cash,QRIS,Card',
-            'products' => 'nullable|array', // Products bisa jadi kosong jika semua dihapus
+            'products' => 'nullable|array',
             'products.*.id' => 'required_with:products|integer|exists:products,id',
             'products.*.jumlah' => 'required_with:products|integer|min:1',
         ]);
-        
+
         DB::transaction(function () use ($request, $id) {
             $transaksi = TransaksiPenjualan::with('details')->findOrFail($id);
-            // Update header
+
             $transaksi->update([
                 'nama_kasir' => $request->nama_kasir,
                 'nama_pembeli' => $request->nama_pembeli,
+                'email_pembeli' => $request->email_pembeli,
                 'metode_pembayaran' => $request->metode_pembayaran
             ]);
 
-            // Sinkronisasi item detail
-            $transaksi->details()->delete(); // Hapus semua item lama
+            $transaksi->details()->delete();
             $grandTotal = 0;
 
             if ($request->has('products')) {
@@ -111,19 +126,46 @@ class TransaksiController extends Controller
                     $grandTotal += $subtotal;
                 }
             }
-            
-            // Update total harga
+
             $transaksi->total_harga = $grandTotal;
             $transaksi->save();
+
+             $to = $request->email_pembeli; // pastikan dikirim dari form
+            $this->sendEmail($to, $transaksi->id);
         });
 
         return redirect()->route('transaksi.index')->with('success', 'Transaksi berhasil diperbarui!');
     }
-    
+
     public function destroy(string $id): RedirectResponse
     {
         $transaksi = TransaksiPenjualan::findOrFail($id);
         $transaksi->delete();
+
         return redirect()->route('transaksi.index')->with('success', 'Transaksi berhasil dihapus!');
     }
+
+ public function sendEmail($to, $id)
+    {
+    $transaksi = TransaksiPenjualan::with('details')->find($id);
+
+    if (!$transaksi) {
+        return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
+    }
+
+    $data_email = [
+        'transaksi' => $transaksi,
+        'details'   => $transaksi->details,
+    ];
+
+    Mail::send('emails.template_transaksi', $data_email, function ($message) use ($to, $transaksi) {
+        
+        $subjectEmail = "Transaksi Details: {$transaksi->nama_pembeli} - dengan total tagihan RP " . number_format($transaksi->total_harga, 2, ',', '.');
+
+        $message->to($to)
+                ->subject($subjectEmail);
+    });
+
+    return response()->json(['message' => 'Email sent successfully.']);
+}
 }
