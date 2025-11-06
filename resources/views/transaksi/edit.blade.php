@@ -82,6 +82,7 @@
                     <div class="d-flex justify-content-between fw-bold mb-3">
                         <span>Total Harga:</span>
                         <span id="grand-total">Rp 0</span>
+
                     </div>
                     <div class="mb-2">
                         <label for="metode_pembayaran" class="form-label fw-semibold small">METODE PEMBAYARAN</label>
@@ -94,9 +95,9 @@
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary fw-bold">PERBARUI TRANSAKSI</button>
                     </div>
-                </div>
+                </div>S
             </div>
-        </div>
+</div>
     </div>
 </form>
 @endsection

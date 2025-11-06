@@ -32,6 +32,23 @@ class ProductController extends Controller
         return view('products.index', compact('products'));
     }
 
+     /**
+     * Display a listing of the resource.
+     */
+    public function lihat()
+    {
+        return Product::all();
+    }
+    
+    /**
+     * Display the specified resource.
+     */
+    public function lihat_id($id)
+    {
+        $product = Product::find($id);
+        if (!$product) return response()->json(['message' => 'User not found'], 404);
+        return $product;
+    }
 
     // ------------------------------------------------------------------
     // CRUD
